@@ -1,12 +1,1445 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="mevidakasha.css">
-    <title>Flame In Freefall</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fire Detective | Scientific Data Workbench</title>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
+
 <body>
 
+<header>
+  <div class="header-inner">
+    <div class="eyebrow">Scientific Data Workbench</div>
+    <h1>🔥 Fire Detective</h1>
+    <p>
+      Explore scientific CSV data, recognize measurement units,
+      combine experimental datasets, and inspect the results.
+      Built for careful analysis of NASA microgravity flame experiments.
+    </p>
+
+    <div class="row" style="margin-top:16px">
+      <span class="engine-indicator">
+        <span class="dot" id="engineDot"></span>
+        <span id="engineStatus">Initializing analysis engine…</span>
+      </span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>01 · Load datasets</h2>
+      <span class="small">Upload one or multiple CSV files</span>
+    </div>
+
+    <div class="panel">
+      <div class="field">
+        <label for="fileInput">Choose CSV files</label>
+        <input
+          id="fileInput"
+          type="file"
+          accept=".csv,text/csv"
+          multiple
+        >
+        <div id="fileSelectionStatus" class="small" style="margin-top:7px">
+          No files selected
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="primary" id="loadBtn" disabled>Load selected files</button>
+        <button class="danger" id="clearBtn">Clear all datasets</button>
+      </div>
+
+      <div class="notice">
+        Files are processed locally in your browser. Original CSV values and
+        column names are preserved. The app does not perform unit conversions.
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>02 · Loaded datasets</h2>
+      <span class="small">Your uploaded CSV files</span>
+    </div>
+
+    <div class="grid">
+      <div class="span-4 stat">
+        <strong id="datasetCount">0</strong>
+        <span>Datasets loaded</span>
+      </div>
+      <div class="span-4 stat">
+        <strong id="totalRows">0</strong>
+        <span>Total source rows</span>
+      </div>
+      <div class="span-4 stat">
+        <strong id="totalColumns">0</strong>
+        <span>Total source columns</span>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:12px">
+      <div id="datasetList" class="small muted">
+        No datasets loaded yet.
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>03 · Unit recognition</h2>
+      <span class="small">Recognize units from column names without changing data</span>
+    </div>
+
+    <div class="panel">
+      <p class="small muted">
+        The app checks column names for explicitly stated units and
+        known scientific naming conventions. It does not guess units
+        from numerical values or convert measurements.
+      </p>
+
+      <div class="row">
+        <button class="primary" id="analyzeBtn" disabled>
+          Inspect column units
+        </button>
+        <span class="small" id="analysisStatus">
+          Load datasets and initialize the engine first.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>04 · Analysis results</h2>
+      <span class="small">Review recognized units; source values and headers stay unchanged.</span>
+    </div>
+
+    <div id="analysisResults" class="panel">
+      <div class="muted small">No unit inspection has been run yet.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>05 · Combine datasets</h2>
+      <span class="small">Automatically combine the loaded CSV files</span>
+    </div>
+
+    <div class="panel">
+      <p class="small muted">
+        Load two or more CSV files, then click the button.
+        The app automatically looks for matching columns with identical names
+        and uses them to combine the datasets. Original headers, values,
+        and units are kept unchanged.
+      </p>
+
+      <div class="row">
+        <button class="primary" id="combineBtn" disabled>
+          Combine datasets
+        </button>
+
+        <span id="combineStatus" class="small muted">
+          Load at least two datasets first.
+        </span>
+      </div>
+
+      <div id="combineResult" class="small" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>06 · Data preview and downloads</h2>
+      <span class="small">View original or analyzed data (identical values)</span>
+    </div>
+
+    <div class="panel">
+      <div class="grid">
+        <div class="span-6">
+          <label for="previewDataset">Dataset</label>
+          <select id="previewDataset"></select>
+        </div>
+
+        <div class="span-6">
+          <label for="previewVersion">View</label>
+          <select id="previewVersion">
+            <option value="processed">Analyzed data (unchanged)</option>
+            <option value="original">Original uploaded data</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row" style="margin:12px 0">
+        <button id="refreshPreviewBtn">Refresh preview</button>
+        <button id="downloadCsvBtn" disabled>Download selected CSV</button>
+        <button id="downloadIntegratedBtn" disabled>Download combined CSV</button>
+        <button id="downloadReportBtn" disabled>Download unit recognition report</button>
+      </div>
+
+      <div id="previewInfo" class="small muted"></div>
+
+      <div id="dataPreview" class="table-wrap" style="margin-top:10px">
+        <div style="padding:15px" class="muted small">No data loaded.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>Processing log</h2>
+    </div>
+
+    <div class="panel">
+      <div id="log">Waiting for files…</div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Fire Detective · Scientific CSV analysis · Local browser processing
+</footer>
+
+<script>
+"use strict";
+
+/* -------------------------------------------------------
+   PYTHON ENGINE
+   pandas is used for tabular processing and automatic
+   dataset combination.
+------------------------------------------------------- */
+
+const PYTHON_CODE = String.raw`
+import json
+import pandas as pd
+import numpy as np
+
+
+def _unit_from_header(header):
+    """Recognize only units explicitly written in a column name."""
+    import re
+
+    h = str(header).strip()
+    low = h.lower().replace("°", "").replace("−", "-")
+
+    aliases = {
+        "%":"%", "percent":"%", "percentage":"%", "pct":"%",
+        "c":"°C", "degc":"°C", "celsius":"°C",
+        "degree_c":"°C", "degrees_c":"°C",
+        "k":"K", "kelvin":"K",
+        "f":"°F", "degf":"°F", "fahrenheit":"°F",
+        "degree_f":"°F", "degrees_f":"°F",
+        "m/s":"m/s", "m s-1":"m/s", "m/sec":"m/s", "mps":"m/s",
+        "ft/min":"ft/min", "ft min-1":"ft/min", "fpm":"ft/min",
+        "pa":"Pa", "kpa":"kPa", "mpa":"MPa",
+        "bar":"bar", "atm":"atm",
+        "s":"s", "sec":"s", "second":"s", "seconds":"s",
+        "min":"min", "minute":"min", "minutes":"min",
+        "h":"h", "hr":"h", "hour":"h", "hours":"h",
+        "m":"m", "meter":"m", "meters":"m", "metre":"m", "metres":"m",
+        "cm":"cm", "mm":"mm", "km":"km", "ft":"ft", "in":"in",
+        "kg":"kg", "g":"g", "mg":"mg", "lb":"lb",
+        "m3":"m³", "m^3":"m³", "l":"L", "liter":"L",
+        "litre":"L", "ml":"mL",
+        "n":"N", "kn":"kN", "j":"J", "kj":"kJ",
+        "mj":"MJ", "w":"W", "kw":"kW",
+        "hz":"Hz", "khz":"kHz",
+        "m/s2":"m/s²", "m/s^2":"m/s²",
+        "kg/m3":"kg/m³", "kg/m^3":"kg/m³",
+        "g/cm3":"g/cm³", "g/cm^3":"g/cm³",
+        "ppm":"ppm", "ppb":"ppb"
+    }
+
+    # Explicit units inside parentheses or brackets.
+    match = re.search(r'\(([^)]+)\)|\[([^\]]+)\]', h)
+
+    if match:
+        raw = (match.group(1) or match.group(2)).strip()
+        normalized = raw.lower().replace("°", "")
+
+        if normalized in aliases:
+            return aliases[normalized]
+
+        return raw
+
+    # Explicit suffixes.
+    suffix_patterns = [
+        (r'_(percent|percentage|pct)$', "%"),
+        (r'_(celsius|degc)$', "°C"),
+        (r'_(kelvin)$', "K"),
+        (r'_(fahrenheit|degf)$', "°F"),
+        (r'_(mps|m_s)$', "m/s"),
+        (r'_(fpm|ft_min)$', "ft/min"),
+        (r'_(kpa)$', "kPa"),
+        (r'_(mpa)$', "MPa"),
+        (r'_(pa)$', "Pa"),
+        (r'_(seconds|second|sec)$', "s"),
+        (r'_(minutes|minute|min)$', "min"),
+        (r'_(hours|hour|hr)$', "h"),
+    ]
+
+    for pattern, unit in suffix_patterns:
+        if re.search(pattern, low):
+            return unit
+
+    # Common scientific conventions.
+    tokens = re.split(r'[^a-z0-9]+', low)
+
+    if "percent" in tokens or "percentage" in tokens or "pct" in tokens:
+        return "%"
+
+    if low == "tad" or low.startswith("tad_"):
+        return "K"
+
+    return None
+
+
+def _classify_column(name, values):
+    """Determine whether a field is quantitative or qualitative."""
+    import re
+
+    normalized = re.sub(r'[^a-z0-9]+', '_', str(name).lower()).strip("_")
+
+    categorical = {
+        "fuel", "fuel_type", "fuel_name",
+        "experiment", "experiment_id",
+        "sample", "sample_id",
+        "test", "test_id",
+        "run", "run_id",
+        "outcome", "result", "status",
+        "flame_type", "condition",
+        "description", "notes",
+        "material", "specimen"
+    }
+
+    if normalized in categorical or normalized.endswith("_id"):
+        return "qualitative"
+
+    nonempty = [
+        x for x in values
+        if x is not None and str(x).strip() != ""
+    ]
+
+    if not nonempty:
+        return "unknown"
+
+    numeric_count = 0
+
+    for value in nonempty:
+        try:
+            float(str(value).replace(",", ""))
+            numeric_count += 1
+        except (ValueError, TypeError):
+            pass
+
+    if numeric_count == len(nonempty):
+        return "quantitative"
+
+    if numeric_count > 0 and numeric_count / len(nonempty) >= 0.9:
+        return "quantitative"
+
+    return "qualitative"
+
+
+def analyze_dataset(payload):
+    obj = json.loads(payload)
+
+    headers = obj["headers"]
+    rows = obj["rows"]
+
+    df = pd.DataFrame(rows, columns=headers)
+
+    report = []
+
+    for col in headers:
+        values = df[col].tolist()
+        kind = _classify_column(col, values)
+        unit = _unit_from_header(col)
+
+        if kind == "qualitative":
+            status = "Not applicable"
+            reason = "Qualitative field; units do not apply."
+
+        elif kind == "unknown":
+            status = "Not determined"
+            reason = "Insufficient information to identify the field type."
+
+        elif unit:
+            status = "Recognized"
+            reason = "Unit identified from the column name."
+
+        else:
+            status = "Not stated"
+            reason = "No explicit unit was identified in the column name."
+
+        report.append({
+            "column": str(col),
+            "kind": kind,
+            "source": unit or "",
+            "status": status,
+            "reason": reason
+        })
+
+    # Return the original data exactly as loaded:
+    # no conversion, renaming, or rounding.
+    return json.dumps({
+        "headers": [str(x) for x in headers],
+        "rows": rows,
+        "report": report,
+        "rowCount": int(len(df)),
+        "columnCount": int(len(df.columns))
+    }, default=str)
+
+
+def auto_combine(payload):
+    """Combine all loaded tables using exact shared column names as keys."""
+
+    tables = json.loads(payload)
+
+    if len(tables) < 2:
+        raise ValueError("Load at least two datasets before combining.")
+
+    combined = pd.DataFrame(
+        tables[0]["rows"],
+        columns=tables[0]["headers"]
+    )
+
+    used_names = [tables[0]["name"]]
+    steps = []
+
+    for item in tables[1:]:
+        right = pd.DataFrame(
+            item["rows"],
+            columns=item["headers"]
+        )
+
+        common = [
+            c for c in combined.columns
+            if c in right.columns
+        ]
+
+        if not common:
+            raise ValueError(
+                "Cannot combine " + item["name"] +
+                ": there are no columns with identical names in common."
+            )
+
+        # Prefer an exact shared identifier column.
+        # If none is suitable, use the first exact shared column
+        # that is unique on at least one side.
+        def priority(col):
+            name = str(col).strip().lower()
+
+            preferred = (
+                "id",
+                "experiment",
+                "sample",
+                "specimen",
+                "test",
+                "run",
+                "record",
+                "observation"
+            )
+
+            return (
+                0 if any(x in name for x in preferred) else 1,
+                common.index(col)
+            )
+
+        candidates = sorted(common, key=priority)
+
+        key = None
+
+        for col in candidates:
+            left_vals = combined[col].dropna()
+            right_vals = right[col].dropna()
+
+            if (
+                len(left_vals)
+                and len(right_vals)
+                and (
+                    left_vals.is_unique
+                    or right_vals.is_unique
+                )
+            ):
+                key = col
+                break
+
+        if key is None:
+            raise ValueError(
+                "Cannot safely combine " + item["name"] +
+                ": no shared column has unique values on at least one side. "
+                "Check that the files contain a common experiment, sample, "
+                "or record ID."
+            )
+
+        if (
+            pd.api.types.is_numeric_dtype(combined[key])
+            != pd.api.types.is_numeric_dtype(right[key])
+        ):
+            raise ValueError(
+                "Cannot combine using '" + str(key) +
+                "': the matching columns have different data types "
+                "(numeric versus text). The app will not silently change values."
+            )
+
+        left_unique = combined[key].dropna().is_unique
+        right_unique = right[key].dropna().is_unique
+
+        if not left_unique and not right_unique:
+            raise ValueError(
+                "Cannot safely combine using '" + str(key) +
+                "': both files contain repeated matching values, "
+                "which could multiply rows."
+            )
+
+        relationship = (
+            "one_to_one"
+            if left_unique and right_unique
+            else (
+                "one_to_many"
+                if left_unique
+                else "many_to_one"
+            )
+        )
+
+        # Never let pandas match blank keys to other blank keys.
+        left_valid = combined[combined[key].notna()].copy()
+        left_blank = combined[combined[key].isna()].copy()
+
+        right_valid = right[right[key].notna()].copy()
+        right_blank = right[right[key].isna()].copy()
+
+        merged = left_valid.merge(
+            right_valid,
+            on=key,
+            how="outer",
+            suffixes=("", "_" + str(len(steps) + 2)),
+            sort=False,
+            validate=relationship
+        )
+
+        # Keep unmatched blank-key rows instead of matching
+        # them together.
+        if len(left_blank):
+            blank_left = pd.DataFrame(
+                [
+                    {c: None for c in merged.columns}
+                    for _ in range(len(left_blank))
+                ]
+            )
+
+            for c in left_blank.columns:
+                if c in blank_left.columns:
+                    blank_left[c] = left_blank[c].to_numpy()
+
+            merged = pd.concat(
+                [merged, blank_left],
+                ignore_index=True
+            )
+
+        if len(right_blank):
+            blank_right = pd.DataFrame(
+                [
+                    {c: None for c in merged.columns}
+                    for _ in range(len(right_blank))
+                ]
+            )
+
+            for c in right_blank.columns:
+                target = (
+                    c
+                    if c in blank_right.columns
+                    else c + "_" + str(len(steps) + 2)
+                )
+
+                if target in blank_right.columns:
+                    blank_right[target] = right_blank[c].to_numpy()
+
+            merged = pd.concat(
+                [merged, blank_right],
+                ignore_index=True
+            )
+
+        if not merged.columns.is_unique:
+            raise ValueError(
+                "The combined files contain duplicate column names. "
+                "Rename the conflicting columns in the source CSV files."
+            )
+
+        combined = merged
+
+        used_names.append(item["name"])
+
+        steps.append({
+            "file": item["name"],
+            "key": str(key),
+            "rows": int(len(combined))
+        })
+
+    return json.dumps({
+        "headers": [str(c) for c in combined.columns],
+
+        "rows": combined.astype(object)
+            .where(pd.notna(combined), None)
+            .to_dict(orient="records"),
+
+        "rowCount": int(len(combined)),
+        "columnCount": int(len(combined.columns)),
+        "files": used_names,
+        "steps": steps
+    }, default=str)
+`;
+
+
+/* -------------------------------------------------------
+   APP STATE
+------------------------------------------------------- */
+
+let pyodide = null;
+let engineReady = false;
+
+let datasets = [];
+let integrated = null;
+let latestReport = [];
+
+const $ = id => document.getElementById(id);
+
+
+function log(message) {
+  const el = $("log");
+
+  el.textContent += "\n" + message;
+  el.scrollTop = el.scrollHeight;
+}
+
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
+}
+
+
+function safeNumber(n) {
+  return Number(n).toLocaleString();
+}
+
+
+function settings() {
+  return {};
+}
+
+
+function getDataset(id) {
+  return datasets.find(d => d.id === id);
+}
+
+
+function activeData(d) {
+  return d.processed || d.original;
+}
+
+
+/* -------------------------------------------------------
+   INITIALIZE PYODIDE
+------------------------------------------------------- */
+
+async function initializeEngine() {
+  try {
+    $("engineStatus").textContent = "Loading Pyodide…";
+
+    pyodide = await loadPyodide();
+
+    $("engineStatus").textContent = "Loading pandas and NumPy…";
+
+    await pyodide.loadPackage(["pandas", "numpy"]);
+
+    pyodide.runPython(PYTHON_CODE);
+
+    engineReady = true;
+
+    $("engineDot").classList.add("good");
+
+    $("engineStatus").textContent = "Analysis engine ready";
+
+    $("analyzeBtn").disabled = datasets.length === 0;
+
+    $("analysisStatus").textContent = "Ready to analyze.";
+
+    log("Python engine initialized with pandas and NumPy.");
+
+    populateSelects();
+
+  } catch (err) {
+    $("engineDot").classList.add("bad");
+
+    $("engineStatus").textContent = "Engine initialization failed";
+
+    $("analysisStatus").textContent = "Could not load the analysis engine.";
+
+    log("ENGINE ERROR: " + err.message);
+  }
+}
+
+initializeEngine();
+
+
+/* -------------------------------------------------------
+   FILE PICKER
+   Use the visible native file input directly.
+------------------------------------------------------- */
+
+$("fileInput").addEventListener("change", () => {
+  const files = Array.from($("fileInput").files || []);
+
+  $("fileSelectionStatus").textContent = files.length
+    ? files.map(file => file.name).join(", ")
+    : "No files selected";
+
+  $("loadBtn").disabled = files.length === 0;
+});
+
+
+/* -------------------------------------------------------
+   CSV LOADING
+------------------------------------------------------- */
+
+$("loadBtn").addEventListener("click", async () => {
+  const files = Array.from($("fileInput").files || []);
+
+  if (!files.length) return;
+
+  for (const file of files) {
+    try {
+      const text = await file.text();
+
+      const parsed = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: "greedy",
+        dynamicTyping: false
+      });
+
+      if (parsed.errors.length) {
+        const serious = parsed.errors.filter(
+          e => e.code !== "UndetectableDelimiter"
+        );
+
+        if (serious.length) {
+          log(
+            "CSV warning for " + file.name +
+            ": " + serious[0].message
+          );
+        }
+      }
+
+      const headers = parsed.meta.fields || [];
+
+      if (!headers.length) {
+        log("Skipped " + file.name + ": no header row found.");
+        continue;
+      }
+
+      const cleanedHeaders = headers.map((h, i) => {
+        const name = String(h ?? "").trim();
+
+        return name || ("Unnamed_column_" + (i + 1));
+      });
+
+      const seen = new Map();
+
+      const uniqueHeaders = cleanedHeaders.map(h => {
+        const count = (seen.get(h) || 0) + 1;
+
+        seen.set(h, count);
+
+        return count === 1
+          ? h
+          : h + "__duplicate_" + count;
+      });
+
+      const rows = parsed.data.map(row => {
+        const obj = {};
+
+        headers.forEach((h, i) => {
+          const value = row[h];
+
+          obj[uniqueHeaders[i]] =
+            value === undefined
+              ? null
+              : (
+                  String(value).trim() === ""
+                    ? null
+                    : value
+                );
+        });
+
+        return obj;
+      });
+
+      datasets.push({
+        id:
+          "ds_" +
+          Date.now() +
+          "_" +
+          Math.random().toString(36).slice(2, 7),
+
+        name: file.name,
+
+        original: {
+          headers: uniqueHeaders,
+          rows
+        },
+
+        processed: null,
+        report: []
+      });
+
+      log(
+        "Loaded " + file.name +
+        " — " + rows.length + " rows, " +
+        uniqueHeaders.length + " columns."
+      );
+
+    } catch (err) {
+      log(
+        "Could not load " + file.name +
+        ": " + err.message
+      );
+    }
+  }
+
+  $("fileInput").value = "";
+
+  $("fileSelectionStatus").textContent = "No files selected";
+
+  $("loadBtn").disabled = true;
+
+  renderAll();
+});
+
+
+/* -------------------------------------------------------
+   CLEAR DATASETS
+------------------------------------------------------- */
+
+$("clearBtn").addEventListener("click", () => {
+  if (!confirm("Remove all loaded datasets and combination results?")) {
+    return;
+  }
+
+  datasets = [];
+  integrated = null;
+  latestReport = [];
+
+  $("analysisResults").innerHTML =
+    '<div class="muted small">No unit inspection has been run yet.</div>';
+
+  $("combineResult").innerHTML = "";
+
+  $("combineStatus").textContent =
+    "Load at least two datasets first.";
+
+  renderAll();
+
+  log("All datasets cleared.");
+});
+
+
+/* -------------------------------------------------------
+   DATASET DISPLAY
+------------------------------------------------------- */
+
+function renderDatasets() {
+  $("datasetCount").textContent = datasets.length;
+
+  $("totalRows").textContent = safeNumber(
+    datasets.reduce(
+      (a, d) => a + d.original.rows.length,
+      0
+    )
+  );
+
+  $("totalColumns").textContent = safeNumber(
+    datasets.reduce(
+      (a, d) => a + d.original.headers.length,
+      0
+    )
+  );
+
+  $("datasetList").innerHTML = datasets.map((d, i) => `
+    <div class="dataset-card">
+      <div class="between">
+        <div>
+          <div class="dataset-name">
+            ${i + 1}. ${escapeHtml(d.name)}
+          </div>
+
+          <div class="small">
+            ${safeNumber(d.original.rows.length)} rows ·
+            ${d.original.headers.length} columns
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="tag">
+            ${d.processed ? "Inspected · unchanged" : "Not inspected"}
+          </span>
+
+          <button class="danger" data-remove="${d.id}">
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        ${d.original.headers.slice(0, 12).map(h => `
+          <span class="tag">${escapeHtml(h)}</span>
+        `).join("")}
+
+        ${
+          d.original.headers.length > 12
+            ? '<span class="tag">+' +
+              (d.original.headers.length - 12) +
+              ' more</span>'
+            : ""
+        }
+      </div>
+    </div>
+  `).join("");
+
+  document.querySelectorAll("[data-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.remove;
+
+      datasets = datasets.filter(d => d.id !== id);
+
+      integrated = null;
+
+      renderAll();
+
+      log("Removed dataset.");
+    });
+  });
+}
+
+
+function populateSelects() {
+  const previewEl = $("previewDataset");
+
+  const oldPreview = previewEl.value;
+
+  const makeOptions = list => list.map(d =>
+    `<option value="${escapeHtml(d.id)}">${escapeHtml(d.name)}</option>`
+  ).join("");
+
+  previewEl.innerHTML = makeOptions(datasets);
+
+  if (datasets.some(d => d.id === oldPreview)) {
+    previewEl.value = oldPreview;
+  }
+
+  $("analyzeBtn").disabled =
+    !engineReady || datasets.length === 0;
+
+  $("combineBtn").disabled =
+    !engineReady || datasets.length < 2;
+
+  $("downloadCsvBtn").disabled =
+    datasets.length === 0;
+
+  $("downloadIntegratedBtn").disabled =
+    !integrated;
+
+  $("downloadReportBtn").disabled =
+    latestReport.length === 0;
+}
+
+
+function renderAll() {
+  renderDatasets();
+
+  populateSelects();
+
+  refreshPreview();
+}
+
+
+/* -------------------------------------------------------
+   UNIT ANALYSIS
+------------------------------------------------------- */
+
+$("analyzeBtn").addEventListener("click", async () => {
+  if (!engineReady) return;
+
+  if (!datasets.length) return;
+
+  $("analyzeBtn").disabled = true;
+
+  $("analysisStatus").textContent = "Inspecting column names…";
+
+  $("analysisResults").innerHTML =
+    '<div class="muted small">Processing…</div>';
+
+  const allReports = [];
+
+  try {
+    for (const d of datasets) {
+      const payload = {
+        headers: d.original.headers,
+        rows: d.original.rows,
+        settings: settings()
+      };
+
+      pyodide.globals.set(
+        "input_payload",
+        JSON.stringify(payload)
+      );
+
+      const result = pyodide.runPython(
+        "analyze_dataset(input_payload)"
+      );
+
+      const output = JSON.parse(result);
+
+      d.processed = {
+        headers: output.headers,
+        rows: output.rows
+      };
+
+      d.report = output.report;
+
+      output.report.forEach(r => {
+        allReports.push({
+          dataset: d.name,
+          column: r.column,
+          kind: r.kind,
+          source: r.source,
+          status: r.status,
+          reason: r.reason
+        });
+      });
+    }
+
+    latestReport = allReports;
+
+    renderAnalysisResults();
+
+    renderDatasets();
+
+    $("analysisStatus").innerHTML =
+      '<span class="good-text">Unit inspection complete. Original data unchanged.</span>';
+
+    $("downloadReportBtn").disabled = latestReport.length === 0;
+
+    log(
+      "Unit inspection completed for " +
+      datasets.length + " datasets. No values were converted."
+    );
+
+  } catch (err) {
+    $("analysisStatus").innerHTML =
+      '<span class="bad-text">Analysis failed.</span>';
+
+    $("analysisResults").innerHTML =
+      `<div class="notice error">${escapeHtml(err.message)}</div>`;
+
+    log("ANALYSIS ERROR: " + err.message);
+
+  } finally {
+    $("analyzeBtn").disabled =
+      !engineReady || datasets.length === 0;
+  }
+});
+
+
+function renderAnalysisResults() {
+  if (!latestReport.length) {
+    $("analysisResults").innerHTML =
+      '<div class="muted small">No unit inspection has been run yet.</div>';
+
+    return;
+  }
+
+  const grouped = new Map();
+
+  for (const r of latestReport) {
+    if (!grouped.has(r.dataset)) {
+      grouped.set(r.dataset, []);
+    }
+
+    grouped.get(r.dataset).push(r);
+  }
+
+  let html = "";
+
+  for (const [datasetName, reports] of grouped.entries()) {
+    html += `
+      <h3 style="margin-top:15px">
+        ${escapeHtml(datasetName)}
+      </h3>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th>Field type</th>
+              <th>Recognized unit</th>
+              <th>Status</th>
+              <th>Explanation</th>
+            </tr>
+          </thead>
+
+          <tbody>
+    `;
+
+    for (const r of reports) {
+      const statusClass =
+        r.status === "Recognized"
+          ? "good-text"
+          : "";
+
+      html += `
+        <tr>
+          <td>${escapeHtml(r.column)}</td>
+          <td>${escapeHtml(r.kind)}</td>
+          <td>
+            ${r.source
+              ? escapeHtml(r.source)
+              : "—"}
+          </td>
+          <td>
+            <span class="${statusClass}">
+              ${escapeHtml(r.status)}
+            </span>
+          </td>
+          <td>${escapeHtml(r.reason)}</td>
+        </tr>
+      `;
+    }
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  $("analysisResults").innerHTML = html;
+}
+
+
+/* -------------------------------------------------------
+   ONE-CLICK DATASET COMBINATION
+------------------------------------------------------- */
+
+$("combineBtn").addEventListener("click", () => {
+  if (!engineReady || datasets.length < 2) return;
+
+  const button = $("combineBtn");
+
+  button.disabled = true;
+
+  $("combineStatus").textContent = "Combining datasets…";
+
+  $("combineResult").innerHTML = "";
+
+  try {
+    const payload = datasets.map(d => {
+      const data = activeData(d);
+
+      return {
+        name: d.name,
+        headers: data.headers,
+        rows: data.rows
+      };
+    });
+
+    pyodide.globals.set(
+      "combine_payload",
+      JSON.stringify(payload)
+    );
+
+    const result = JSON.parse(
+      pyodide.runPython(
+        "auto_combine(combine_payload)"
+      )
+    );
+
+    integrated = {
+      headers: result.headers,
+      rows: result.rows
+    };
+
+    $("combineStatus").textContent =
+      "Combined successfully.";
+
+    $("combineResult").innerHTML = `
+      <div class="notice">
+        Combined <b>${result.files.length}</b> files into
+        <b>${safeNumber(result.rowCount)}</b> rows and
+        <b>${safeNumber(result.columnCount)}</b> columns.
+
+        <div class="small" style="margin-top:6px">
+          Matching columns:
+          ${result.steps.map(x => escapeHtml(x.key)).join(", ")}
+        </div>
+      </div>
+    `;
+
+    $("downloadIntegratedBtn").disabled = false;
+
+    log(
+      "Combined " + result.files.length +
+      " datasets into " + result.rowCount +
+      " rows and " + result.columnCount + " columns."
+    );
+
+  } catch (err) {
+    integrated = null;
+
+    $("downloadIntegratedBtn").disabled = true;
+
+    $("combineStatus").textContent =
+      "Could not combine the files.";
+
+    $("combineResult").innerHTML =
+      `<div class="notice error">${escapeHtml(err.message)}</div>`;
+
+    log("COMBINE ERROR: " + err.message);
+
+  } finally {
+    button.disabled =
+      datasets.length < 2 || !engineReady;
+  }
+});
+
+
+/* -------------------------------------------------------
+   DATA PREVIEW
+------------------------------------------------------- */
+
+function renderTable(data, limit = 100) {
+  if (!data || !data.headers.length) {
+    return '<div style="padding:12px">No data available.</div>';
+  }
+
+  const rows = data.rows.slice(0, limit);
+
+  let html = "<table><thead><tr><th>#</th>";
+
+  html += data.headers.map(h =>
+    `<th>${escapeHtml(h)}</th>`
+  ).join("");
+
+  html += "</tr></thead><tbody>";
+
+  rows.forEach((row, i) => {
+    html += `<tr><td>${i + 1}</td>`;
+
+    data.headers.forEach(h => {
+      const v = row[h];
+
+      html += `
+        <td>
+          ${escapeHtml(
+            v === null || v === undefined
+              ? "—"
+              : v
+          )}
+        </td>
+      `;
+    });
+
+    html += "</tr>";
+  });
+
+  html += "</tbody></table>";
+
+  return html;
+}
+
+
+function refreshPreview() {
+  const d = getDataset($("previewDataset").value);
+
+  if (!d) {
+    $("dataPreview").innerHTML =
+      '<div style="padding:12px" class="muted small">No data loaded.</div>';
+
+    $("previewInfo").textContent = "";
+
+    return;
+  }
+
+  const version = $("previewVersion").value;
+
+  const data =
+    version === "original"
+      ? d.original
+      : (d.processed || d.original);
+
+  $("previewInfo").textContent =
+    `${d.name} · ${safeNumber(data.rows.length)} rows · ` +
+    `${data.headers.length} columns · Showing first 100 rows`;
+
+  $("dataPreview").innerHTML = renderTable(data, 100);
+}
+
+
+$("refreshPreviewBtn").addEventListener(
+  "click",
+  refreshPreview
+);
+
+$("previewDataset").addEventListener(
+  "change",
+  refreshPreview
+);
+
+$("previewVersion").addEventListener(
+  "change",
+  refreshPreview
+);
+
+
+/* -------------------------------------------------------
+   DOWNLOADS
+------------------------------------------------------- */
+
+function csvEscape(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const s = String(value);
+
+  return /[",\r\n]/.test(s)
+    ? '"' + s.replace(/"/g, '""') + '"'
+    : s;
+}
+
+
+function toCSV(data) {
+  const headers = data.headers;
+
+  const rows = data.rows;
+
+  const lines = [
+    headers.map(csvEscape).join(",")
+  ];
+
+  for (const row of rows) {
+    lines.push(
+      headers.map(h => csvEscape(row[h])).join(",")
+    );
+  }
+
+  return "\uFEFF" + lines.join("\r\n");
+}
+
+
+function downloadText(filename, text) {
+  const blob = new Blob(
+    [text],
+    { type: "text/csv;charset=utf-8;" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = filename;
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+
+$("downloadCsvBtn").addEventListener("click", () => {
+  const d = getDataset($("previewDataset").value);
+
+  if (!d) return;
+
+  const original =
+    $("previewVersion").value === "original";
+
+  const data =
+    original
+      ? d.original
+      : (d.processed || d.original);
+
+  const base = d.name.replace(/\.csv$/i, "");
+
+  downloadText(
+    base + (
+      original
+        ? "_original.csv"
+        : "_analyzed_unchanged.csv"
+    ),
+    toCSV(data)
+  );
+});
+
+
+$("downloadIntegratedBtn").addEventListener("click", () => {
+  if (!integrated) return;
+
+  downloadText(
+    "combined_dataset.csv",
+    toCSV(integrated)
+  );
+});
+
+
+$("downloadReportBtn").addEventListener("click", () => {
+  if (!latestReport.length) return;
+
+  const headers = [
+    "dataset",
+    "column",
+    "kind",
+    "source",
+    "status",
+    "reason"
+  ];
+
+  const rows = latestReport.map(r =>
+    headers.map(h => r[h] ?? "")
+  );
+
+  const csv = [
+    headers,
+    ...rows
+  ].map(row =>
+    row.map(csvEscape).join(",")
+  ).join("\r\n");
+
+  downloadText(
+    "unit_recognition_report.csv",
+    "\uFEFF" + csv
+  );
+});
+
+</script>
 </body>
 </html>
