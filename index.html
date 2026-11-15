@@ -522,7 +522,7 @@
                     <ul>
 
                         <p>We built a SI-powered dashboard that takes NASA's microgravity combustion data and turns
-                            it into clear fire safety tips. We analyzed real data from NASA’s PSI database and
+                            it into clear fire safety tips. We analyzed real data from NASA's PSI database and
                             organized the most important information, like the fuel type, oxygen level, pressure,
                             airflow, and burn time. We then used the learning from the analysis dataset and created
                             a combustion risk scoring system for these three fuel types: Solid, Liquid, and Gas.
@@ -531,7 +531,7 @@
                     <h3>How does it address the challenge?</h3>
                     <ul>
 
-                        <p>The challenge asked us to make a dashboard that summarizes, ranks, and interprets NASA’s
+                        <p>The challenge asked us to make a dashboard that summarizes, ranks, and interprets NASA's
                             fire
                             experiments to help keep people safe in space. Our dashboard does that by:
                             <br>The dashboard summarizes each experiment's goal,
@@ -557,10 +557,10 @@
                     </ul>
                     <h3>Why is it important?</h3>
                     <ul>
-                        <p>Fire is one of the biggest dangers in space, because astronauts can’t escape it and there is
+                        <p>Fire is one of the biggest dangers in space, because astronauts can't escape it and there is
                             nobody to save them. In space, fires behave very differently compared to fires on Earth due
                             to gravity. Airflow from fans can make fires spread rapidly, and some fires in space keep on
-                            burning even though the flame is not visible. This is why our dashboard turns NASA’s complex
+                            burning even though the flame is not visible. This is why our dashboard turns NASA's complex
                             fire data into clear and easy-to-understand risk categories, helping people in space safely
                             identify flames in space before they can spread, keeping them safe.
                         </p>
@@ -592,7 +592,7 @@
                     </ul>
                     <h3>What benefits does it have?</h3>
                     <ul>
-                        <p>Originally, NASA’s data is incredibly difficult to go through manually due to the tremendous
+                        <p>Originally, NASA's data is incredibly difficult to go through manually due to the tremendous
                             amount of data; however, our website sorts through it instantly and compiles it in a
                             readable and understandable manner. We have many sliders and tabs that make it easier to
                             find a variety of information quickly.
@@ -620,14 +620,11 @@
                     <h3>How is your project creative?</h3>
                     <ul>
                         <p>We made all our charts on our own using the data we researched
-                            <li>-We created 3 different equations to calculate risk factors instead of just one.</li><br>
+                            <li>-We created 3 different equations to calculate risk factors instead of just one.</li>
+                            <br>
                             <li>-We coded sliders and tabs to make navigating our dashboard easier even with a lot of
                                 information</li><br>
                             <li>-We got insights from NASA and NIST</li><br>
-
-
-
-
                             Our project is creative through the fact that we created almost all our charts on our own
                             using PowerPoint. One major way we were very creative was when we calculated the risk rate
                             and created 3 different risk algorithms instead of just one. Another way our project is
@@ -744,7 +741,8 @@
                     <p class="explanation">
                         Tertile ranges are calculated separately for each gas or
                         liquid fuel. Gas fuels use Burn Time and Peak Temperature.
-                        Liquid fuels use Burn Time. Identical values are always
+                        Liquid fuels use both Burn Time and Diameter Reduction.
+                        Identical values are always
                         kept together in the same tertile.
                     </p>
 
@@ -779,7 +777,7 @@
                                     <th>High evidence groups</th>
                                     <th>Medium evidence groups</th>
                                     <th>Low evidence groups</th>
-                                    <th>Flammability Status</th>
+                                    <th>Flammability Status (separate indicator)</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
@@ -812,17 +810,18 @@
                     <h2>Methodology and sources</h2>
 
                     <p class="explanation">
-                        Gas-fuel combustion classification uses Burn Time and
-                        Peak Temperature. Values are ranked separately within
+                        Gas-fuel combustion classification (for example, ethane)
+                        uses Burn Time and Peak Temperature. Values are ranked separately within
                         each gas fuel and divided into three groups (tertiles).
-                        Each measurement receives a score of 1, 2, or 3.
+                        Each measurement receives a project-defined score of 1, 2, or 3 (1 = lowest tertile; 3 = highest
+                        tertile).
                         The two scores are averaged to determine combustion
                         classification.
                     </p>
 
                     <p class="explanation">
-                        Liquid-fuel combustion classification uses Burn Time
-                        and Diameter Reduction. Burn Time is divided into
+                        Liquid-fuel combustion classification (for example, methanol)
+                        uses Burn Time and Diameter Reduction. Burn Time is divided into
                         tertiles separately for each liquid fuel. Diameter
                         Reduction is calculated as:
                         (Initial Diameter - Extinction Diameter) /
@@ -848,16 +847,20 @@
                     </p>
 
                     <p class="explanation">
-                        Flammability classification is a separate
-                        project-defined rule using final O2 and flow measurements.
-                        These rules should not be treated as universal
-                        fire-safety thresholds.
+                        Flammability Status is a separate, project-defined indicator
+                        based on final oxygen and airflow. Combustion Risk is the
+                        experiment-level result based on the fuel-specific scoring
+                        method. They answer different questions and may differ; the
+                        Combustion Risk score is the primary result for comparing
+                        combustion outcomes. Neither rule is a universal fire-safety
+                        threshold.
                     </p>
 
                     <p class="explanation">
-                        Scientific background references include NASA spacecraft
-                        fire research, NASA Saffire research, NIST fire research,
-                        and IEC 60695-8-1 guidance.
+                        The scoring thresholds and tertile cutoffs shown here are
+                        project-defined from the selected experiment datasets. NASA,
+                        NIST, and IEC references provide scientific background; they
+                        are not the source of the project's numerical scoring cutoffs.
                     </p>
 
                     <p class="explanation">
@@ -881,7 +884,7 @@
     </div>
 
     <div id="crasmPage" class="hidden">
-        <h1>Combustion Risk Assessment Simulator in Microgravity - CRASM</h1>
+        <h1>COMBUSTION RISK ASSESSMENT SIMULATOR IN MICROGRAVITY - CRASM</h1>
         <p class="subtitle">Adjust hypothetical experiment variables. Original datasets and scoring rules remain
             unchanged.</p>
         <div class="panel" id="simulatorPanel">
@@ -1571,6 +1574,10 @@
            ========================================================= */
 
         function classifyGasCombustion(result) {
+            if (result.burntime === 0) {
+                result.averageGasScore = 1;
+                return "LOW";
+            }
             const burnScore = result.burntimeScore;
             const tempScore = result.peaktempScore;
 
@@ -1597,6 +1604,10 @@
            ========================================================= */
 
         function classifyLiquidCombustion(result) {
+            if (result.burntime === 0) {
+                result.averageLiquidScore = 1;
+                return "LOW";
+            }
             const burnScore = result.burntimeScore;
             const reductionScore = result.diameterReductionScore;
 
@@ -1740,85 +1751,48 @@
            ========================================================= */
 
         function classifyGases(row, headers) {
-            const o2Initial = getValue(
-                row, findColumn(headers, ["o2"], "initial")
-            );
-
-            const o2Final = getValue(
-                row, findColumn(headers, ["o2"], "final")
-            );
-
-            const co2Initial = getValue(
-                row, findColumn(headers, ["co2"], "initial")
-            );
-
-            const co2Final = getValue(
-                row, findColumn(headers, ["co2"], "final")
-            );
-
-            const coInitial = getValue(
-                row, findColumn(headers, ["co"], "initial")
-            );
-
-            const coFinal = getValue(
-                row, findColumn(headers, ["co"], "final")
-            );
-
-            const complete = [
-                o2Initial, o2Final,
-                co2Initial, co2Final,
-                coInitial, coFinal
-            ].every(value => value !== null);
-
-            let classification = "INCONCLUSIVE";
-
-            if (complete) {
-                const o2Changed = isMeaningfulChange(o2Initial, o2Final);
-                const co2Changed = isMeaningfulChange(co2Initial, co2Final);
-                const coChanged = isMeaningfulChange(coInitial, coFinal);
-
-                const o2Decreased = o2Changed && o2Final < o2Initial;
-                const co2Increased = co2Changed && co2Final > co2Initial;
-                const coIncreased = coChanged && coFinal > coInitial;
-
-                const allUnchanged = !o2Changed && !co2Changed && !coChanged;
-                const coUnchanged = !coChanged;
-
-                if (o2Decreased && co2Increased && coIncreased) {
-                    classification = "HIGH";
-                } else if (o2Decreased && co2Increased && coUnchanged) {
-                    classification = "MEDIUM";
-                } else if (allUnchanged) {
-                    classification = "LOW";
+            const pairs = [
+                {
+                    name: "O2", initial: getValue(row, findColumn(headers, ["o2"], "initial")),
+                    final: getValue(row, findColumn(headers, ["o2"], "final")), direction: "decrease"
+                },
+                {
+                    name: "CO2", initial: getValue(row, findColumn(headers, ["co2"], "initial")),
+                    final: getValue(row, findColumn(headers, ["co2"], "final")), direction: "increase"
+                },
+                {
+                    name: "CO", initial: getValue(row, findColumn(headers, ["co"], "initial")),
+                    final: getValue(row, findColumn(headers, ["co"], "final")), direction: "increase"
                 }
-            }
-
-            return {
-                classification,
-                complete,
-                values: [
-                    {
-                        name: "O2",
-                        initial: o2Initial,
-                        final: o2Final,
-                        change: getChange(o2Initial, o2Final)
-                    },
-                    {
-                        name: "CO2",
-                        initial: co2Initial,
-                        final: co2Final,
-                        change: getChange(co2Initial, co2Final)
-                    },
-                    {
-                        name: "CO",
-                        initial: coInitial,
-                        final: coFinal,
-                        change: getChange(coInitial, coFinal)
+            ];
+            const values = pairs.map(gas => {
+                let classification = "INCONCLUSIVE";
+                if (gas.initial !== null && gas.final !== null) {
+                    const changed = isMeaningfulChange(gas.initial, gas.final);
+                    if (!changed) classification = "LOW";
+                    else if ((gas.direction === "decrease" && gas.final < gas.initial) ||
+                        (gas.direction === "increase" && gas.final > gas.initial)) {
+                        classification = "HIGH";
+                    } else {
+                        classification = "LOW";
                     }
-                ]
+                }
+                return {
+                    name: gas.name, initial: gas.initial, final: gas.final,
+                    change: getChange(gas.initial, gas.final), classification
+                };
+            });
+            const evaluable = values.filter(v => v.classification !== "INCONCLUSIVE");
+            const high = evaluable.filter(v => v.classification === "HIGH").length;
+            const medium = evaluable.filter(v => v.classification === "MEDIUM").length;
+            const low = evaluable.filter(v => v.classification === "LOW").length;
+            return {
+                classification: getRowClassification(high, medium, low, evaluable.length),
+                complete: evaluable.length > 0,
+                evaluable: evaluable.length,
+                high, medium, low, values
             };
         }
-
 
         /* =========================================================
            FUEL-SPECIFIC FLAMMABILITY
@@ -1826,66 +1800,30 @@
 
         function classifyFuelFlammability(row, headers) {
             const fuelIndex = findNamedColumn(headers, [
-                "fuel",
-                "fuel type",
-                "material",
-                "specimen material"
+                "fuel", "fuel type", "material", "specimen material"
             ]);
-
             const flowIndex = findNamedColumn(headers, [
-                "flow speed",
-                "flow rate",
-                "air display"
+                "flow speed", "flow rate", "air display"
             ]);
-
             const o2FinalIndex = findColumn(headers, ["o2"], "final");
-
-            const fuel = fuelIndex >= 0
-                ? normalize(row[fuelIndex])
-                : "";
-
+            const fuel = fuelIndex >= 0 ? normalize(row[fuelIndex]) : "";
             const applicableFuels = [
-                "pmma",
-                "sibal",
-                "rod",
-                "film",
-                "spherical",
-                "wax candle",
-                "nomex"
+                "pmma", "sibal", "rod", "film", "spherical", "wax candle", "nomex"
             ];
-
-            const applies = applicableFuels.some(name =>
-                fuel.includes(normalize(name))
-            );
-
+            const applies = applicableFuels.some(name => fuel.includes(normalize(name)));
             if (!applies) return "NOT APPLICABLE";
-
             const finalO2 = getValue(row, o2FinalIndex);
             const flowSpeed = getValue(row, flowIndex);
-
-            if (finalO2 === null || flowSpeed === null) {
-                return "INCONCLUSIVE";
-            }
-
+            if (finalO2 === null || flowSpeed === null) return "INCONCLUSIVE";
             if (finalO2 <= riskSettings.oxygenLowCutoff) return "LOW";
             if (flowSpeed < riskSettings.flowLowCutoff) return "LOW";
-
             if (finalO2 <= riskSettings.oxygenUpperCutoff) {
-                if (
-                    flowSpeed >= riskSettings.flowLowCutoff &&
-                    flowSpeed <= riskSettings.flowUpperCutoff
-                ) {
-                    return "HIGH";
-                }
-
-                if (flowSpeed > riskSettings.flowUpperCutoff) {
-                    return "MEDIUM";
-                }
+                if (flowSpeed >= riskSettings.flowLowCutoff &&
+                    flowSpeed <= riskSettings.flowUpperCutoff) return "HIGH";
+                if (flowSpeed > riskSettings.flowUpperCutoff) return "MEDIUM";
             }
-
             return "INCONCLUSIVE";
         }
-
 
         /* =========================================================
            OPTIONAL BOOLEAN MEASUREMENTS
@@ -2088,22 +2026,20 @@
             else {
                 const gases = classifyGases(row, headers);
 
-                if (gases.complete) {
-                    evaluable++;
-
-                    if (gases.classification === "HIGH") high++;
-                    if (gases.classification === "MEDIUM") medium++;
-                    if (gases.classification === "LOW") low++;
-                }
-
                 gases.values.forEach(gas => {
                     details.push({
-                        name: gas.name + " (gas pattern)",
+                        name: gas.name + " (gas measurement)",
                         initial: gas.initial,
                         final: gas.final,
                         change: gas.change,
-                        classification: gases.classification
+                        classification: gas.classification
                     });
+                    if (gas.classification !== "INCONCLUSIVE") {
+                        evaluable++;
+                        if (gas.classification === "HIGH") high++;
+                        if (gas.classification === "MEDIUM") medium++;
+                        if (gas.classification === "LOW") low++;
+                    }
                 });
 
                 for (const rule of variableRules) {
@@ -2228,12 +2164,25 @@
                 );
             });
 
+            // A zero-second burn indicates no ignition: assign the lowest score.
+            results.forEach(result => {
+                if (result.burntime === 0 && (result.isGas || result.isLiquid)) {
+                    result.burntimeScore = 1;
+                }
+            });
+
             // Each liquid fuel gets its own Burn Time tertiles.
             Object.values(liquidGroups).forEach(group => {
                 assignTertileScores(group, "burntime", "burntimeScore",
                     "isLiquid");
                 assignTertileScores(group, "diameterReduction",
                     "diameterReductionScore", "isLiquid");
+            });
+
+            results.forEach(result => {
+                if (result.burntime === 0 && (result.isGas || result.isLiquid)) {
+                    result.burntimeScore = 1;
+                }
             });
 
             results.forEach(result => {
@@ -2698,14 +2647,20 @@ combustion classifications.`;
                 const gasAliases = [{ name: "Oxygen", aliases: ["o2"] }, { name: "Carbon Dioxide", aliases: ["co2"] }, { name: "Carbon Monoxide", aliases: ["co"] }];
                 gasAliases.forEach(v => {
                     addSimulationField(dataset, rowIndexes, exemplarIndex, findColumn(headers, v.aliases, "initial"), v.name + " (Initial)", fields);
-                    addSimulationField(dataset, rowIndexes, exemplarIndex, findColumn(headers, v.aliases, "final"), v.name + " (Final)", fields);
+                    const finalIndex = findColumn(headers, v.aliases, "final");
+                    addSimulationField(dataset, rowIndexes, exemplarIndex, finalIndex, v.name + " (Final)", fields);
+                    if (v.name === "Oxygen") {
+                        const initialIndex = findColumn(headers, v.aliases, "initial");
+                        const initialValues = numericColumnValues(dataset, rowIndexes, initialIndex);
+                        const initialMax = initialValues.length ? Math.max(...initialValues) : null;
+                        const finalField = fields.find(f => f.index === finalIndex);
+                        if (finalField && initialMax !== null) finalField.max = Math.max(finalField.max, initialMax);
+                    }
                 });
                 variableRules.forEach(rule => {
                     addSimulationField(dataset, rowIndexes, exemplarIndex, findColumn(headers, rule.aliases, "initial"), rule.name + " (Initial)", fields);
                     addSimulationField(dataset, rowIndexes, exemplarIndex, findColumn(headers, rule.aliases, "final"), rule.name + " (Final)", fields);
                 });
-                const flow = findNamedColumn(headers, ["flow speed", "flow rate", "air display"]);
-                addSimulationField(dataset, rowIndexes, exemplarIndex, flow, "Flow Speed", fields);
             }
             return fields;
         }
@@ -2728,6 +2683,15 @@ combustion classifications.`;
             if (!group) { container.textContent = "No supported fuel group was found in this dataset."; return; }
             const exemplarIndex = group.indices[0];
             simulationFields = getSimulationFields(dataset, group.indices, exemplarIndex, group.state);
+            if (group.state === "LIQUID") {
+                const diameterColumns = findLiquidDiameterColumns(dataset.headers);
+                const initialField = simulationFields.find(f => f.index === diameterColumns.initialIndex);
+                const extinctionField = simulationFields.find(f => f.index === diameterColumns.extinctionIndex);
+                if (initialField && extinctionField) {
+                    extinctionField.max = Math.min(extinctionField.max, initialField.value);
+                    extinctionField.value = Math.min(extinctionField.value, extinctionField.max);
+                }
+            }
             simulationDefaults = simulationFields.map(f => f.value);
             simulationFields.forEach((f, i) => {
                 const wrap = document.createElement("div"); wrap.className = "sim-control";
@@ -2736,7 +2700,25 @@ combustion classifications.`;
                 const value = document.createElement("span"); value.id = "simVal" + i; value.textContent = Number(f.value).toLocaleString(undefined, { maximumFractionDigits: 4 });
                 label.append(name, value); wrap.appendChild(label);
                 const input = document.createElement("input"); input.type = "range"; input.id = "simVar" + i; input.min = f.min; input.max = f.max; input.step = f.step; input.value = f.value;
-                input.addEventListener("input", () => { f.value = Number(input.value); value.textContent = f.value.toLocaleString(undefined, { maximumFractionDigits: 4 }); runSimulation(); });
+                input.addEventListener("input", () => {
+                    f.value = Number(input.value);
+                    if (group.state === "LIQUID") {
+                        const d = findLiquidDiameterColumns(dataset.headers);
+                        const initialField = simulationFields.find(x => x.index === d.initialIndex);
+                        const extinctionField = simulationFields.find(x => x.index === d.extinctionIndex);
+                        const extinctionInput = simulationFields.findIndex(x => x.index === d.extinctionIndex);
+                        if (initialField && extinctionField && extinctionInput >= 0) {
+                            extinctionField.max = Math.min(extinctionField.max, initialField.value);
+                            extinctionField.value = Math.min(extinctionField.value, extinctionField.max);
+                            const extEl = document.getElementById("simVar" + extinctionInput);
+                            if (extEl) { extEl.max = extinctionField.max; extEl.value = extinctionField.value; }
+                            const extVal = document.getElementById("simVal" + extinctionInput);
+                            if (extVal) extVal.textContent = Number(extinctionField.value).toLocaleString(undefined, { maximumFractionDigits: 4 });
+                        }
+                    }
+                    value.textContent = f.value.toLocaleString(undefined, { maximumFractionDigits: 4 });
+                    runSimulation();
+                });
                 wrap.appendChild(input);
                 const note = document.createElement("small"); note.textContent = "Observed range: " + Number(f.min).toPrecision(4) + " to " + Number(f.max).toPrecision(4); wrap.appendChild(note);
                 container.appendChild(wrap);
@@ -5346,6 +5328,16 @@ ${dataset.results.length.toLocaleString()} experiment rows`;
             tabs.innerHTML = "";
 
             Object.entries(BUILT_IN_DATASETS).forEach(([key, dataset]) => {
+                dataset.rows = dataset.rows.filter(row => {
+                    if (!row || !row.some(cell => String(cell ?? "").trim() !== "")) return false;
+                    const info = getFuelInfo(row, dataset.headers);
+                    if (info.isLiquid) {
+                        const d = findLiquidDiameterColumns(dataset.headers);
+                        const initial = getValue(row, d.initialIndex), extinction = getValue(row, d.extinctionIndex);
+                        if (initial !== null && extinction !== null && initial > 0 && extinction > initial) return false;
+                    }
+                    return true;
+                });
                 const results = dataset.rows.map((row, index) =>
                     analyzeRow(row, dataset.headers, index + 1)
                 );
