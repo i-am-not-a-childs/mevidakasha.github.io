@@ -421,6 +421,10 @@
         .sim-result { margin:18px 0 12px; padding:16px; border:1px solid #40516a; border-radius:10px; background:#111d2e; line-height:1.65; }
         .sim-result strong { color:#7dd3fc; }
 
+
+.crasm-gauge-image{display:block;width:min(100%,620px);height:auto;margin:18px auto;border-radius:14px}
+#crasmPage .sim-result{text-align:center}
+@media(max-width:850px){.top-tab{white-space:normal}}
 </style>
 </head>
 
@@ -429,11 +433,11 @@
 
     <div class="top-tabs">
       <button type="button" id="mainTab" class="top-tab active"
-onclick="showPage('main')">Combustion Risk
-                Assesment Tool In Microgravity</button>
+onclick="showPage('main')">Fire Safety Dashboard</button>
       <button type="button" id="dataTab" class="top-tab"
 onclick="showPage('data')">NASA Experiment
                 Results</button>
+      <button type="button" id="crasmTab" class="top-tab" onclick="showPage('crasm')">Combustion Risk Assessment Simulator in Microgravity - CRASM</button>
     </div>
     <div id="mainPage">
         <div class="container">
@@ -595,14 +599,7 @@ Select a dataset to view its
         <p id="datasetSummary" class="muted"></p>
       </div>
       <div id="results" class="hidden">
-        <div class="panel" id="simulatorPanel">
-          <h2>Hypothetical Experiment Simulator</h2>
-          <p class="explanation">Adjust the experiment inputs below to simulate a new experiment. The original dataset stays unchanged, and the existing project rules and tertile method are applied to calculate the result.</p>
-          <div class="sim-select-row"><label>Reference dataset <select id="simDatasetSelect"></select></label><label>Fuel / material <select id="simFuelSelect"></select></label></div>
-          <div id="simInputControls" class="sim-input-grid"></div>
-          <div id="simResult" class="sim-result" aria-live="polite">Choose a dataset and adjust the inputs to see a simulated result.</div>
-          <button type="button" id="resetSimulation" class="reset-button">Reset simulated inputs</button>
-        </div>
+        
 
         <div class="panel">
           <h2>Overall dataset classification</h2>
@@ -775,6 +772,14 @@ target="_blank" rel="noopener">IEC
     </div>
   </div>
 
+<div id="crasmPage" class="hidden"><h1>Combustion Risk Assessment Simulator in Microgravity - CRASM</h1><p class="subtitle">Adjust hypothetical experiment variables. Original datasets and scoring rules remain unchanged.</p><div class="panel" id="simulatorPanel">
+          <h2>Hypothetical Experiment Simulator</h2>
+          <p class="explanation">Adjust the experiment inputs below to simulate a new experiment. The original dataset stays unchanged, and the existing project rules and tertile method are applied to calculate the result.</p>
+          <div class="sim-select-row"><label>Reference dataset <select id="simDatasetSelect"></select></label><label>Fuel / material <select id="simFuelSelect"></select></label></div>
+          <div id="simInputControls" class="sim-input-grid"></div>
+          <div id="simResult" class="sim-result" aria-live="polite">Choose a dataset and adjust the inputs to see a simulated result.</div>
+          <button type="button" id="resetSimulation" class="reset-button">Reset simulated inputs</button>
+        </div></div>
   <script>
     /* =========================================================
        GLOBAL FILTER STATE
@@ -797,15 +802,9 @@ target="_blank" rel="noopener">IEC
         });
 
         function showPage(page) {
-            const main = page === "main";
-            document.getElementById("mainPage").classList.toggle("hidden",
-!main);
-            document.getElementById("dataPage").classList.toggle("hidden",
-main);
-            document.getElementById("mainTab").classList.toggle("active",
-main);
-            document.getElementById("dataTab").classList.toggle("active",
-!main);
+            const pages={main:["mainPage","mainTab"],data:["dataPage","dataTab"],crasm:["crasmPage","crasmTab"]};
+            Object.values(pages).forEach(([p,t])=>{document.getElementById(p).classList.add("hidden");document.getElementById(t).classList.remove("active");});
+            const chosen=pages[page]||pages.main; document.getElementById(chosen[0]).classList.remove("hidden"); document.getElementById(chosen[1]).classList.add("active");
         }
 
 
@@ -2622,6 +2621,13 @@ combustion classifications.`;
             runSimulation();
         }
 
+        function crasmGauge(status) {
+          const low=status.includes("LOW"), high=status.includes("HIGH"), label=low?"LOW":high?"HIGH":"MEDIUM", color=low?"#35df87":high?"#ff4d57":"#ffc34d", angle=low?-48:high?48:0;
+          const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650"><defs><linearGradient id="b" x2="0" y2="1"><stop stop-color="#142c48"/><stop offset="1" stop-color="#050b17"/></linearGradient><linearGradient id="m"><stop stop-color="#52687d"/><stop offset=".5" stop-color="#f2f7ff"/><stop offset="1" stop-color="#34485c"/></linearGradient></defs><rect width="900" height="650" rx="28" fill="url(#b)"/><g fill="#9bc9f5" opacity=".5">${Array.from({length:45},(_,i)=>`<circle cx="${(i*137)%890+5}" cy="${(i*71)%390+5}" r="${i%3?1:2}"/>`).join("")}</g><path d="M0 400Q450 290 900 400V650H0Z" fill="#12375a" opacity=".5"/><path d="M180 390A270 270 0 0 1 720 390" fill="none" stroke="url(#m)" stroke-width="48"/><path d="M205 375A245 245 0 0 1 335 185" fill="none" stroke="#35df87" stroke-width="28"/><path d="M352 170A245 245 0 0 1 548 170" fill="none" stroke="#ffc34d" stroke-width="28"/><path d="M565 185A245 245 0 0 1 695 375" fill="none" stroke="#ff4d57" stroke-width="28"/><g fill="white" font-family="Arial" font-size="27" font-weight="bold" text-anchor="middle"><text x="275" y="300">LOW</text><text x="450" y="190">MEDIUM</text><text x="625" y="300">HIGH</text></g><g transform="translate(450 390) rotate(${angle})"><path d="M-8 20L0 -205L8 20Z" fill="${color}" stroke="white" stroke-width="3"/><circle r="27" fill="url(#m)" stroke="#13283c" stroke-width="7"/></g><rect x="130" y="480" width="640" height="130" rx="18" fill="#091626" stroke="url(#m)" stroke-width="8"/><text x="450" y="528" text-anchor="middle" font-family="Arial" font-size="34" font-weight="900" fill="white">COMBUSTION RISK</text><text x="450" y="566" text-anchor="middle" font-family="Arial" font-size="20" fill="#dbe8f5">ASSESSMENT SIMULATOR IN MICROGRAVITY - CRASM</text><text x="450" y="598" text-anchor="middle" font-family="Arial" font-size="17" font-weight="bold" fill="${color}">${label} RISK</text></svg>`;
+          return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg);
+        }
+        function showCRASMGauge(output, classification){const m=String(classification||"").toUpperCase().match(/LOW|MEDIUM|HIGH/);const status=m?m[0]:"MEDIUM";let img=output.querySelector(".crasm-gauge-image");if(!img){img=document.createElement("img");img.className="crasm-gauge-image";output.appendChild(img);}img.src=crasmGauge(status);img.alt=status+" risk gauge";}
+
         function runSimulation() {
             const ds=document.getElementById("simDatasetSelect").value, dataset=BUILT_IN_DATASETS[ds];
             const group=simulationFuelGroups[Number(document.getElementById("simFuelSelect").value)];
@@ -2636,9 +2642,11 @@ combustion classifications.`;
                 const result=combined[combined.length-1];
                 const parts=info.isGas?[ ["Burn Time",result.burntime,result.burntimeScore],["Peak Temperature",result.peaktemp,result.peaktempScore] ]:[["Burn Time",result.burntime,result.burntimeScore],["Diameter Reduction (%)",result.diameterReduction,result.diameterReductionScore]];
                 output.innerHTML="<strong>Simulated classification: "+result.classification+"</strong><br>"+parts.map(p=>p[0]+": "+(p[1]===null?"N/A":Number(p[1]).toLocaleString(undefined,{maximumFractionDigits:4}))+" → "+(p[2]===null?"INCONCLUSIVE":"Tertile score "+p[2])).join("<br>")+"<br>Average score: "+(info.isGas?result.averageGasScore:result.averageLiquidScore);
+                showCRASMGauge(output,result.classification);
             } else {
                 const details=syntheticResult.details||[];
                 output.innerHTML="<strong>Simulated classification: "+syntheticResult.classification+"</strong><br>"+details.map(d=>d.name+": "+d.classification).join("<br>")+"<br>Evaluable measurements: "+syntheticResult.evaluable;
+                showCRASMGauge(output,syntheticResult.classification);
             }
         }
 
